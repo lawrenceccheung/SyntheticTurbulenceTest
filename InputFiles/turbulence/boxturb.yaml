@@ -1,0 +1,26 @@
+boxturb:
+  data_format: windsim
+  output: turbulence.nc
+
+  box_dims: [512, 128, 128]
+  box_len: [2560.0, 640.0, 640.0]
+
+  bin_filenames:
+    - sim09_1
+    - sim09_2
+    - sim09_3
+
+  correct_divergence: yes
+
+  solver_settings:
+    method: pfmg
+    preconditioner: none
+    max_iterations: 200
+    tolerance: 1.0e-8
+    print_level: 1
+    log_level: 1
+
+  # Scaling factor
+  apply_scaling: yes
+  scale_type: default
+  scaling_factors: [1.0, 0.7, 0.3]

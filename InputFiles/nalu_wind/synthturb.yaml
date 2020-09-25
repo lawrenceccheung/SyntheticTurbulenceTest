@@ -1,0 +1,185 @@
+Simulations:
+  - name: sim1
+    time_integrator: ti_1
+    optimizer: opt1
+
+linear_solvers:
+
+  - name: solve_scalar
+    type: tpetra
+    method: gmres
+    preconditioner: riluk
+    tolerance: 1e-5
+    max_iterations: 200
+    kspace: 200
+    output_level: 0
+
+  - name: solve_cont
+    type: hypre
+    method: hypre_gmres
+    preconditioner: boomerAMG
+    tolerance: 1e-5
+    max_iterations: 50
+    kspace: 75
+    output_level: 0
+    bamg_coarsen_type: 8
+    bamg_interp_type: 6
+    bamg_cycle_type: 1
+
+  - name: solve_mom
+    type: hypre
+    method: hypre_gmres
+    preconditioner: boomerAMG
+    tolerance: 1e-5
+    max_iterations: 200
+    kspace: 75
+    output_level: 0
+    segregated_solver: yes
+    bamg_max_levels: 1
+    bamg_relax_type: 6
+    bamg_num_sweeps: 1
+
+realms:
+
+  - name: realm_1
+    mesh: boxmesh.exo
+    automatic_decomposition_type: rcb
+    use_edges: yes
+
+    time_step_control:
+     target_courant: 1000.0
+     time_step_change_factor: 1.05
+
+    equation_systems:
+      name: theEqSys
+      max_iterations: 2
+
+      solver_system_specification:
+        velocity: solve_scalar
+        turbulent_ke: solve_scalar
+        specific_dissipation_rate: solve_scalar
+        pressure: solve_cont
+        ndtw: solve_cont
+
+      systems:
+        - LowMachEOM:
+            name: myLowMach
+            max_iterations: 1
+            convergence_tolerance: 1e-8
+
+    initial_conditions:
+      - constant: ic_1
+        target_name:
+          - fluid-HEX
+        value:
+          pressure: 0
+          velocity: [10.0,0.0,0.0]
+
+    material_properties:
+      target_name:
+        - fluid-HEX
+      specifications:
+        - name: density
+          type: constant
+          value: 1.0
+        - name: viscosity
+          type: constant
+          value: 1.0e-5
+
+    boundary_conditions:
+
+    - inflow_boundary_condition: bc_inflow
+      target_name: inlet
+      inflow_user_data:
+        velocity: [10.0, 0.0,0.0]
+
+    - open_boundary_condition: bc_open
+      target_name: outlet
+      open_user_data:
+        velocity: [0,0,0]
+        pressure: 0.0
+
+    - symmetry_boundary_condition: bc_symSides
+      target_name: sides
+      symmetry_user_data:
+
+    solution_options:
+      name: myOptions
+      turbulence_model: smagorinsky
+      projected_timescale_type: momentum_diag_inv
+
+      options:
+        - source_terms:
+            momentum:
+              - synthetic_turbulence
+
+        - hybrid_factor:
+            velocity: 1.0
+            turbulent_ke: 1.0
+            specific_dissipation_rate: 1.0
+
+        - alpha_upw:
+            velocity: 1.0
+            turbulent_ke: 1.0
+            specific_dissipation_rate: 1.0
+
+        - upw_factor:
+            velocity: 1.0
+            turbulent_ke: 0.0
+            specific_dissipation_rate: 0.0
+
+        - noc_correction:
+            pressure: yes
+
+        - limiter:
+            pressure: no
+            velocity: yes
+            turbulent_ke: yes
+            specific_dissipation_rate: yes
+
+        - projected_nodal_gradient:
+            velocity: element
+            pressure: element
+            turbulent_ke: element
+            specific_dissipation_rate: element
+            ndtw: element
+
+    restart:
+      restart_data_base_name: rst/synthturb.rst
+      restart_frequency: 120
+      restart_start: 0
+
+    output:
+      output_data_base_name: out/synthturb.e
+      output_frequency: 120
+      output_node_set: no
+      output_variables:
+       - velocity
+       - pressure
+       - turbulent_viscosity
+       - element_courant
+
+    synthetic_turbulence_forcing:
+      turbulence_file: turbulence.nc
+      grid_location: [ -160.0, 0.0, 0.0 ]
+      mean_wind_type: constant
+      mean_wind_speed: 10.0
+      wind_direction: 270.0
+      mean_wind_ref_height: 0.0
+      grid_spacing: 5.0
+      gauss_smearing_factor: 2.5
+      time_offset: 0.0
+
+Time_Integrators:
+  - StandardTimeIntegrator:
+      name: ti_1
+      start_time: 0
+      time_step: 0.0034
+      termination_step_count: 25000
+      time_stepping_type: fixed
+      time_step_count: 0
+      second_order_accuracy: yes
+      nonlinear_iterations: 1
+
+      realms:
+        - realm_1

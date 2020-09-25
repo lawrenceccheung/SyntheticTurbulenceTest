@@ -1,0 +1,11 @@
+nalu_abl_mesh:
+  mesh_type: generate_ablmesh
+  output_db: boxmesh.exo
+
+  spec_type: bounding_box
+
+  vertices:
+    - [-320.0, -400.0, -400.0]
+    - [400.0, 400.0, 400.0]
+
+  mesh_dimensions: [288, 320, 320]
