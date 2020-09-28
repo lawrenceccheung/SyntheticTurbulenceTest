@@ -73,3 +73,23 @@ memsize100663296
 Save turbulence boxes to disk
 Finished
 ```
+
+### Run `boxturb`
+- Compile NaluWindUtils with `HYPRE` on:
+  In `CMakeLists.txt`, set 
+```cmake
+option(ENABLE_HYPRE "Enable HYPRE solver interface" on)
+```
+
+```bash
+$ ./boxturb -i boxturb.yaml
+Nalu Turbulent File Processing Utility
+Input file: boxturb.yaml
+Begin loading WindSim turbulence data
+	Loading file: sim09_u.bin
+	Loading file: sim09_v.bin
+	Loading file: sim09_w.bin
+PFMG: Iters = 22; Rel. res. norm = 6.32687e-09
+Begin output in NetCDF format: turbulence.nc
+NetCDF file written successfully: turbulence.nc
+```
