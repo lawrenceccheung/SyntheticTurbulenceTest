@@ -1,0 +1,201 @@
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            SIMULATION STOP            #
+#.......................................#
+time.stop_time               =  600.0     # Max (simulated) time to evolve
+time.max_step                =   -1          # Max number of time steps
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#         TIME STEP COMPUTATION         #
+#.......................................#
+time.fixed_dt         =   0.25        # Use this constant dt if > 0
+time.cfl              =   0.98       # CFL factor
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            INPUT AND OUTPUT           #
+#.......................................#
+io.KE_int = -1
+io.line_plot_int = 1
+io.outputs = synth_turb_forcing
+time.plot_interval            =  100       # Steps between plot files
+time.checkpoint_interval      =  1000       # Steps between checkpoint files
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#               PHYSICS                 #
+#.......................................#
+incflo.gravity        =  0.0  0.0 -9.81  # Gravitational force (3D)
+incflo.density        =  1.0             # Reference density
+incflo.use_godunov = 1
+transport.viscosity = 0.0
+transport.laminar_prandtl = 0.7
+transport.turbulent_prandtl = 0.3333
+turbulence.model = Smagorinsky
+Smagorinsky_coeffs.Cs = 0.135
+incflo.physics = FreeStream SyntheticTurbulence
+SynthTurb.turbulence_file = ./turbulence.nc
+SynthTurb.wind_direction = 270.0
+SynthTurb.grid_location = -160.0 0.0 0.0
+SynthTurb.mean_wind_speed = 10.0
+SynthTurb.mean_wind_type = "constant"
+SynthTurb.mean_wind_ref_height = 00.0
+SynthTurb.grid_spacing = 5.0
+#SynthTurb.gauss_smearing_factor = 0.11283791670955128
+SynthTurb.time_offset = 0.0
+ICNS.source_terms = SynthTurbForcing
+incflo.velocity = 10.0 0.0 0.0
+incflo.use_limiter = 0
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#        ADAPTIVE MESH REFINEMENT       #
+#.......................................#
+amr.n_cell              = 288 320 320 # Grid cells at coarsest AMRlevel
+amr.max_level           = 0           # Max AMR level in hierarchy
+tagging.static_refinement = false
+tagging.static_refinement_def = static_box.txt
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              GEOMETRY                 #
+#.......................................#
+geometry.prob_lo        =   -320.0       -400.0     -400.0  # Lo corner coordinates
+geometry.prob_hi        =    500.         400.       400.  # Hi corner coordinates
+geometry.is_periodic    =   0   0   0   # Periodicity x y z (0/1)
+# Boundary conditions
+xlo.type = "mass_inflow"
+xlo.density = 1.0
+xlo.velocity = 10.0 0.0 0.0
+xhi.type = "pressure_outflow"
+ylo.type = "slip_wall"
+yhi.type = "slip_wall"
+zlo.type =   "slip_wall"
+zhi.type =   "slip_wall"
+incflo.verbose          =   0
+# MLMG settings
+nodal_proj.mg_rtol = 1.0e-6
+nodal_proj.mg_atol = 1.0e-12
+mac_proj.mg_rtol = 1.0e-6
+mac_proj.mg_atol = 1.0e-12
+diffusion.mg_rtol = 1.0e-6
+diffusion.mg_atol = 1.0e-12
+
+# Activate data probe sampling
+incflo.post_processing = sampling
+
+# Frequency of output for the data
+sampling.output_frequency = 1
+# Type of probes to output
+sampling.labels = l_h1 l_h2 l_h3 l_h4 l_h5 l_h6 l_h7 l_h8 l_h9 l_v2 l_v3 l_v4 l_v5 l_v6 l_v7 l_v8 l_v9 
+
+# Fields to output
+sampling.fields = velocity
+
+# Definitions for each probe
+sampling/l_h1.type = LineSampler
+sampling/l_h1.num_points = 16
+sampling/l_h1.start = -160.0 0.0 0.0
+sampling/l_h1.end =  160.0 0.0 0.0
+
+
+# Definitions for each probe
+sampling/l_h2.type = LineSampler
+sampling/l_h2.num_points = 16
+sampling/l_h2.start = -160.0 40.0 0.0
+sampling/l_h2.end =  160.0 40.0 0.0
+
+
+# Definitions for each probe
+sampling/l_h3.type = LineSampler
+sampling/l_h3.num_points = 16
+sampling/l_h3.start = -160.0 80.0 0.0
+sampling/l_h3.end =  160.0 80.0 0.0
+
+
+# Definitions for each probe
+sampling/l_h4.type = LineSampler
+sampling/l_h4.num_points = 16
+sampling/l_h4.start = -160.0 120.0 0.0
+sampling/l_h4.end =  160.0 120.0 0.0
+
+
+# Definitions for each probe
+sampling/l_h5.type = LineSampler
+sampling/l_h5.num_points = 16
+sampling/l_h5.start = -160.0 160.0 0.0
+sampling/l_h5.end =  160.0 160.0 0.0
+
+
+# Definitions for each probe
+sampling/l_h6.type = LineSampler
+sampling/l_h6.num_points = 16
+sampling/l_h6.start = -160.0 -40.0 0.0
+sampling/l_h6.end =  160.0 -40.0 0.0
+
+
+# Definitions for each probe
+sampling/l_h7.type = LineSampler
+sampling/l_h7.num_points = 16
+sampling/l_h7.start = -160.0 -80.0 0.0
+sampling/l_h7.end =  160.0 -80.0 0.0
+
+
+# Definitions for each probe
+sampling/l_h8.type = LineSampler
+sampling/l_h8.num_points = 16
+sampling/l_h8.start = -160.0 -120.0 0.0
+sampling/l_h8.end =  160.0 -120.0 0.0
+
+
+# Definitions for each probe
+sampling/l_h9.type = LineSampler
+sampling/l_h9.num_points = 16
+sampling/l_h9.start = -160.0 -160.0 0.0
+sampling/l_h9.end =  160.0 -160.0 0.0
+
+# Definitions for each probe
+sampling/l_v2.type = LineSampler
+sampling/l_v2.num_points = 16
+sampling/l_v2.start = -160.0 0.0  40.0
+sampling/l_v2.end =  160.0 0.0  40.0
+
+
+# Definitions for each probe
+sampling/l_v3.type = LineSampler
+sampling/l_v3.num_points = 16
+sampling/l_v3.start = -160.0 0.0  80.0
+sampling/l_v3.end =  160.0 0.0  80.0
+
+
+# Definitions for each probe
+sampling/l_v4.type = LineSampler
+sampling/l_v4.num_points = 16
+sampling/l_v4.start = -160.0 0.0  120.0
+sampling/l_v4.end =  160.0 0.0  120.0
+
+
+# Definitions for each probe
+sampling/l_v5.type = LineSampler
+sampling/l_v5.num_points = 16
+sampling/l_v5.start = -160.0 0.0 160.0
+sampling/l_v5.end =  160.0 0.0 160.0
+
+
+# Definitions for each probe
+sampling/l_v6.type = LineSampler
+sampling/l_v6.num_points = 16
+sampling/l_v6.start = -160.0 0.0  -40.0
+sampling/l_v6.end =  160.0 0.0  -40.0
+
+
+# Definitions for each probe
+sampling/l_v7.type = LineSampler
+sampling/l_v7.num_points = 16
+sampling/l_v7.start = -160.0 0.0  -80.0
+sampling/l_v7.end =  160.0 0.0  -80.0
+
+
+# Definitions for each probe
+sampling/l_v8.type = LineSampler
+sampling/l_v8.num_points = 16
+sampling/l_v8.start = -160.0 0.0  -120.0
+sampling/l_v8.end =  160.0 0.0  -120.0
+
+
+# Definitions for each probe
+sampling/l_v9.type = LineSampler
+sampling/l_v9.num_points = 16
+sampling/l_v9.start = -160.0 0.0  -160.0
+sampling/l_v9.end =  160.0 0.0  -160.0
