@@ -1,0 +1,299 @@
+nalu_abl_mesh:
+  mesh_type: generate_ablmesh
+  output_db: boxmesh.exo
+
+  spec_type: bounding_box
+  fluid_part_name: fluid_part
+
+  vertices:
+    - [-320.0, -400.0, -400.0]
+    - [400.0, 400.0, 400.0]
+
+  mesh_dimensions: [288, 320, 320]
+  xmin_boundary_name: inlet
+  xmax_boundary_name: outlet
+  ymin_boundary_name: sides
+  ymax_boundary_name: sides
+  zmin_boundary_name: sides
+  zmax_boundary_name: sides
+
+
+Simulations:
+  - name: sim1
+    time_integrator: ti_1
+    optimizer: opt1
+
+linear_solvers:
+
+  - name: solve_scalar
+    type: tpetra
+    method: gmres
+    preconditioner: riluk
+    tolerance: 1e-5
+    max_iterations: 200
+    kspace: 200
+    output_level: 0
+
+  - name: solve_cont
+    type: hypre
+    method: hypre_gmres
+    preconditioner: boomerAMG
+    tolerance: 1e-5
+    max_iterations: 50
+    kspace: 75
+    output_level: 0
+    bamg_coarsen_type: 8
+    bamg_interp_type: 6
+    bamg_cycle_type: 1
+
+  - name: solve_mom
+    type: hypre
+    method: hypre_gmres
+    preconditioner: boomerAMG
+    tolerance: 1e-5
+    max_iterations: 200
+    kspace: 75
+    output_level: 0
+    segregated_solver: yes
+    bamg_max_levels: 1
+    bamg_relax_type: 6
+    bamg_num_sweeps: 1
+
+realms:
+
+  - name: realm_1
+    mesh: boxmesh.exo
+    automatic_decomposition_type: rcb
+    use_edges: yes
+
+    time_step_control:
+     target_courant: 1000.0
+     time_step_change_factor: 1.05
+
+    equation_systems:
+      name: theEqSys
+      max_iterations: 2
+
+      solver_system_specification:
+        velocity: solve_scalar
+        turbulent_ke: solve_scalar
+        specific_dissipation_rate: solve_scalar
+        pressure: solve_cont
+        ndtw: solve_cont
+
+      systems:
+        - LowMachEOM:
+            name: myLowMach
+            max_iterations: 1
+            convergence_tolerance: 1e-8
+
+    initial_conditions:
+      - constant: ic_1
+        target_name: [fluid_part]
+        value:
+          pressure: 0
+          velocity: [10.0,0.0,0.0]
+
+    material_properties:
+      target_name: [fluid_part]
+      specifications:
+        - name: density
+          type: constant
+          value: 1.0
+        - name: viscosity
+          type: constant
+          value: 1.0e-5
+
+    boundary_conditions:
+
+    - inflow_boundary_condition: bc_inflow
+      target_name: inlet
+      inflow_user_data:
+        velocity: [10.0, 0.0,0.0]
+
+    - open_boundary_condition: bc_open
+      target_name: outlet
+      open_user_data:
+        velocity: [0,0,0]
+        pressure: 0.0
+
+    - symmetry_boundary_condition: bc_symSides
+      target_name: sides
+      symmetry_user_data:
+
+    solution_options:
+      name: myOptions
+      turbulence_model: smagorinsky
+      projected_timescale_type: momentum_diag_inv
+
+      options:
+        - source_terms:
+            momentum:
+              - synthetic_turbulence
+
+        - hybrid_factor:
+            velocity: 1.0
+            turbulent_ke: 1.0
+            specific_dissipation_rate: 1.0
+
+        - alpha_upw:
+            velocity: 1.0
+            turbulent_ke: 1.0
+            specific_dissipation_rate: 1.0
+
+        - upw_factor:
+            velocity: 1.0
+            turbulent_ke: 0.0
+            specific_dissipation_rate: 0.0
+
+        - noc_correction:
+            pressure: yes
+
+        - limiter:
+            pressure: no
+            velocity: yes
+            turbulent_ke: yes
+            specific_dissipation_rate: yes
+
+        - projected_nodal_gradient:
+            velocity: element
+            pressure: element
+            turbulent_ke: element
+            specific_dissipation_rate: element
+            ndtw: element
+
+    restart:
+      restart_data_base_name: rst/synthturb.rst
+      restart_frequency: 500
+      restart_start: 0
+
+    output:
+      output_data_base_name: out/synthturb.e
+      output_frequency: 100
+      output_node_set: no
+      output_variables:
+       - velocity
+       - pressure
+       - turbulent_viscosity
+       - element_courant
+
+    data_probes:
+      output_format: text
+      output_frequency: 1   # output every 30s 
+      search_method: stk_kdtree
+      search_tolerance: 1.0e-5 #1.0e-3
+      search_expansion_factor: 2.0
+
+      specifications:
+        - name: probe_surface
+          from_target_part: fluid_part
+          output_variables:
+            - field_name: velocity
+              field_size: 3
+            - field_name: pressure
+              field_size: 1
+          # Sample planes
+          plane_specifications:
+            - name: sliceData/XYplane_z000
+              corner_coordinates: [-320, -400.0, 0.0]
+              edge1_vector: [720, 0, 0]
+              edge2_vector: [0, 800, 0]
+              edge1_numPoints: 73
+              edge2_numPoints: 81
+          # Line probes
+          line_of_site_specifications:
+            - name: probeData/l_h1
+              number_of_points: 17
+              tip_coordinates:  [-160.0, 0.0, 0.0]
+              tail_coordinates: [ 160.0, 0.0, 0.0]
+            - name: probeData/l_h2
+              number_of_points: 17
+              tip_coordinates:  [-160.0, 40.0, 0.0]
+              tail_coordinates: [ 160.0, 40.0, 0.0]
+            - name: probeData/l_h3
+              number_of_points: 17
+              tip_coordinates:  [-160.0, 80.0, 0.0]
+              tail_coordinates: [ 160.0, 80.0, 0.0]
+            - name: probeData/l_h4
+              number_of_points: 17
+              tip_coordinates:  [-160.0, 120.0, 0.0]
+              tail_coordinates: [ 160.0, 120.0, 0.0]
+            - name: probeData/l_h5
+              number_of_points: 17
+              tip_coordinates:  [-160.0, 160.0, 0.0]
+              tail_coordinates: [ 160.0, 160.0, 0.0]
+            - name: probeData/l_h6
+              number_of_points: 17
+              tip_coordinates:  [-160.0, -40.0, 0.0]
+              tail_coordinates: [ 160.0, -40.0, 0.0]
+            - name: probeData/l_h7
+              number_of_points: 17
+              tip_coordinates:  [-160.0, -80.0, 0.0]
+              tail_coordinates: [ 160.0, -80.0, 0.0]
+            - name: probeData/l_h8
+              number_of_points: 17
+              tip_coordinates:  [-160.0, -120.0, 0.0]
+              tail_coordinates: [ 160.0, -120.0, 0.0]
+            - name: probeData/l_h9
+              number_of_points: 17
+              tip_coordinates:  [-160.0, -160.0, 0.0]
+              tail_coordinates: [ 160.0, -160.0, 0.0]
+
+            - name: probeData/l_v2
+              number_of_points: 17
+              tip_coordinates:  [-160.0,  0.0, 40.0]
+              tail_coordinates: [ 160.0,  0.0, 40.0]
+            - name: probeData/l_v3
+              number_of_points: 17
+              tip_coordinates:  [-160.0,  0.0, 80.0]
+              tail_coordinates: [ 160.0,  0.0, 80.0]
+            - name: probeData/l_v4
+              number_of_points: 17
+              tip_coordinates:  [-160.0,  0.0, 120.0]
+              tail_coordinates: [ 160.0,  0.0, 120.0]
+            - name: probeData/l_v5
+              number_of_points: 17
+              tip_coordinates:  [-160.0,  0.0, 160.0]
+              tail_coordinates: [ 160.0,  0.0, 160.0]
+            - name: probeData/l_v6
+              number_of_points: 17
+              tip_coordinates:  [-160.0,  0.0, -40.0]
+              tail_coordinates: [ 160.0,  0.0, -40.0]
+            - name: probeData/l_v7
+              number_of_points: 17
+              tip_coordinates:  [-160.0,  0.0, -80.0]
+              tail_coordinates: [ 160.0,  0.0, -80.0]
+            - name: probeData/l_v8
+              number_of_points: 17
+              tip_coordinates:  [-160.0,  0.0, -120.0]
+              tail_coordinates: [ 160.0,  0.0, -120.0]
+            - name: probeData/l_v9
+              number_of_points: 17
+              tip_coordinates:  [-160.0,  0.0, -160.0]
+              tail_coordinates: [ 160.0,  0.0, -160.0]
+
+
+    synthetic_turbulence_forcing:
+      turbulence_file: turbulence.nc
+      grid_location: [ -160.0, 0.0, 0.0 ]
+      mean_wind_type: constant
+      mean_wind_speed: 10.0
+      wind_direction: 270.0
+      mean_wind_ref_height: 0.0
+      grid_spacing: 2.5
+      gauss_smearing_factor: 2.5
+      time_offset: 0.0
+
+Time_Integrators:
+  - StandardTimeIntegrator:
+      name: ti_1
+      start_time: 0
+      time_step: 0.25
+      termination_step_count: 2400
+      time_stepping_type: fixed
+      time_step_count: 0
+      second_order_accuracy: yes
+      nonlinear_iterations: 1
+
+      realms:
+        - realm_1
